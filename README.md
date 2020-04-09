@@ -20,7 +20,7 @@ The repository contains one scripts
 
 ## pykomoot_gpx.py
 
-###HowTo
+### HowTo
 
 * You need to login manually via the browser
 * Press F12 in the Browser and switch to the network tab
