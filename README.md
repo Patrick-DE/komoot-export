@@ -1,11 +1,7 @@
 # komoot-export
 
 Export GPS tracks and tour data from komoot.de
-
-## Update 2019-10-30
-
-The login process has changed again and I could not get it working on the first couple of tries (see open issue). So at present the script is not functional.
-Since I mainly use Strava now for data keeping I will make no further attempts to fix this for the time being.
+Credits go to: Matthias-hi https://github.com/matthias-hi for the base of the sourcecode
 
 ## Disclaimer
 
@@ -13,46 +9,45 @@ This repository is in NO way affiliated to Komoot. It uses non-public APIs to ex
 
 ## Overview
 
-The repository contains two scripts
+The repository contains one scripts
 
 * __pykomoot_gpx.py__ Download GPX tracks of planned and recorded tours.
-* __pykomoot_tours.py__ Store tour data (e.g. name, date, duration, distance, ...) in a CSV file.
 
 ## Requirements
 
 * Recent version of Python 3
 * requests
 
-E.g. with [Conda](https://conda.io/docs/ "Conda") installed, run
-
-```
-$ git clone https://github.com/matthias-hi/komoot-export.git komoot-export
-$ cd komoot-export
-$ source activate pykomoot-env
-```
-
 ## pykomoot_gpx.py
+
+###HowTo
+
+* You need to login manually via the browser
+* Press F12 in the Browser and switch to the network tab
+* Visit "https://www.komoot.de/api/v007/users/696489732183/tours/?page=0&limit=100"
+* Click on the request which looks similar to "?page=0&limit=100"
+* Copy from the RequestHeaders the complete part: "Cookie: ...." (you can use tripple click to mark everything)
+* Add it as the second parameter
 
 ### Limitations
 
-* Only login via mail + password has been implemented and tested (means no Facebook login).
-* The script has been tested with an account having the "Complete Package" (all regions) unlocked.
+* I don't have an account via email so the login/session functionality is not available
 
 ### Examples
 
 Download all "recorded" tours into directory "gpx_download/recorded/"
 ```
-$ ./pykomoot_gpx.py -r gpx_download/recorded/ <email>
+$ ./pykomoot_gpx.py -r gpx_download/recorded/ <cookies>
 ```
 
 Download all "planned" tours into directory "gpx_download/planned/"
 ```
-$ ./pykomoot_gpx.py -p gpx_download/planned/ <email>
+$ ./pykomoot_gpx.py -p gpx_download/planned/ <cookies>
 ```
 
 Only download tour data in JSON format (tours.json) which is used as input for pykomoot_tours.py
 ```
-$ ./pykomoot_gpx.py <email>
+$ ./pykomoot_gpx.py <cookies>
 ```
 
 ## pykomoot_tours.py

@@ -14,6 +14,7 @@ import sys
 
 import json
 import requests
+import re
 
 from pykomoot_tours import KomootTours
 
@@ -42,38 +43,34 @@ def _save_text(text, file_name):
 class PyKomoot(object):
     """PyKomoot"""
     def __init__(self):
-        self.email = None
-        self.session = requests.Session()
-        self.username = None  # actually user ID as obtained from Komoot
+        self.cookies = None
+        self.username = ""
         self.tours_json = None  # json raw data of Komoot tours
 
-    def login(self, email, password):
-        """Login to komoot.de and get username (ID).
+    def parseCookies(self, cookies):
+        dicti = []
+        cookielist = re.findall("(\S*?)=(\S*?)($|;|,(?! ))",cookies)
+        for i in range(len(cookielist)):
+            dicti.append(cookielist[i][0:2])
+        self.cookies = dict(dicti)
 
-        :param email: Login email address.
-        :param password: Login password.
-        """
-        # login
-        self.email = email
-        session = self.session
-        response = session.get(_URLS['user_exists'].format(email=self.email))
-        response.raise_for_status()
-        response = session.post(_URLS['login'], data={'username': self.email, 'password': password})
-        response.raise_for_status()
-        # get username (user ID) from komoot
-        response = session.get(_URLS['login'])
-        self.username = response.json()['username']
-
+        response = requests.get("https://account.komoot.com/api/account/v1/session?hl=de", cookies=self.cookies)
+        personalInfo = json.loads(response.text)
+        try:
+            self.username = personalInfo["_embedded"]["profile"]["username"]
+        except:
+            print("The cookies you provided are invalid!")
+            exit(-1)
+    
     def get_tour_overview(self):
         """Download tour overview page and create KomootTours object.
 
         :returns: Instance of KomootTours
         """
         self.tours_json = None
-        session = self.session
         json_data_list = []
         for page in range(100):
-            response = session.get(_URLS['tours'].format(username=self.username), params={'page': page, 'limit': 100})
+            response = requests.get(_URLS['tours'].format(username=self.username), cookies=self.cookies, params={'page': page, 'limit': 100})
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError:
@@ -84,45 +81,30 @@ class PyKomoot(object):
             self.tours_json = json.dumps(json_data_list)
         return KomootTours(self.tours_json)
 
-    def __str__(self):
-        ret = []
-        if self.username:
-            ret.append('User:           {} ({})'.format(self.email, self.username))
-        else:
-            ret.append('User:           Not logged in.')
-        return '\n'.join(ret)
-
     def download_tour(self, tourname):
         """Download one tour and return as requests response.
 
         :param tourname: ID of tour to download.
         :returns: GPX file as text (type: str)
         """
-        response = self.session.get(_URLS['download'].format(tourname=str(tourname)))
+        response = requests.get(_URLS['download'].format(tourname=str(tourname)), cookies=self.cookies)
         response.raise_for_status()
         return response
-
-    def __del__(self):
-        self.session.close()
 
 
 def main():
     """Example program to download gpx tracks."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('email', help='login email address for Komoot')
-    parser.add_argument('password', nargs='?', help='will be prompted if not given')
+    parser.add_argument('cookies', help='cookies from website')
     parser.add_argument('-p', '--planned', help='directory to download planned tours to')
     parser.add_argument('-r', '--recorded', help='directory to download recored tours to')
     args = parser.parse_args()
-    if args.password:
-        password = args.password
-    else:
-        password = getpass.getpass(prompt='Komoot password: ')
+
     download_dir = args.planned if args.planned else args.recorded
     komoot = PyKomoot()
     ktours = None
     try:
-        komoot.login(args.email, password)
+        komoot.parseCookies(args.cookies)
     except requests.exceptions.HTTPError:
         print('Failed to log in to komoot.de. Check given mail and password.')
         sys.exit(1)
@@ -137,7 +119,6 @@ def main():
             _save_text(komoot.tours_json, 'tours.json')
             print('Saved tour overview page to "tours.json"')
     print('')
-    print(komoot)
     print(ktours)
     if download_dir:
         print('Downloading GPX files:')
