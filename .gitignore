@@ -1,6 +1,8 @@
 # Files created by this script:
 tours.json
 tours.csv
+gpx_download/
+.vscode/
 
 ### GitHub default Python .gitignore ###
 # Byte-compiled / optimized / DLL files
